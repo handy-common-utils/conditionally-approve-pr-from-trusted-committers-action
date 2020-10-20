@@ -38,6 +38,7 @@ async function run() {
 
     // Get all commiters on a pull request
     for (let commit of listCommits) {
+      core.info(`Commiter: ${commit.author.login}`);
       // Check if there are commiters other than ALLOWED_NAMES
       if (!ALLOWED_NAMES[commit.author.login]) {
         core.info(
