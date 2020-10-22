@@ -6,7 +6,7 @@ const ALLOWED_NAMES = ['dependabot[bot]', 'dependabot-preview[bot]'].reduce(
   {}
 );
 
-async function remove_dependabot_approvals(client, pr) {
+async function remove_dependabot_approvals(client: any, pr: any) {
   try {
     // Get list of all reviews
     const { data: listReviews } = await client.pulls.listReviews({
@@ -14,10 +14,15 @@ async function remove_dependabot_approvals(client, pr) {
       repo: github.context.repo.repo,
       pull_number: pr.number,
     });
+    core.info(`List of reviews: ${listReviews}`);
 
     // Check if there is an approval by dependabot
     for (let review of listReviews) {
+      core.info(
+        `Reviewer: ${review.user.login}  Review state: ${review.state}`
+      );
       if (ALLOWED_NAMES[review.user.login] && review.state === `APPROVED`) {
+        core.info(`Removing an approval from ${review.user.login}`);
         await client.pulls.dismissReview({
           owner: github.context.repo.owner,
           repo: github.context.repo.repo,
