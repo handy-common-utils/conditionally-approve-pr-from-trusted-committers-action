@@ -1,7 +1,12 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 
-const ALLOWED_NAMES = ['dependabot[bot]', 'dependabot-preview[bot]'].reduce(
+const ALLOWED_COMMITTERS = [
+  'dependabot[bot]',
+  'dependabot-preview[bot]',
+].reduce((acc, name) => ({ ...acc, [name]: true }), {});
+
+const ALLOWED_REVIEWERS = ['github-actions[bot]'].reduce(
   (acc, name) => ({ ...acc, [name]: true }),
   {}
 );
@@ -21,7 +26,7 @@ async function remove_dependabot_approvals(client: any, pr: any) {
       core.info(
         `Reviewer: ${review.user.login}  Review state: ${review.state}`
       );
-      if (ALLOWED_NAMES[review.user.login] && review.state === `APPROVED`) {
+      if (ALLOWED_REVIEWERS[review.user.login] && review.state === `APPROVED`) {
         core.info(`Removing an approval from ${review.user.login}`);
         await client.pulls.dismissReview({
           owner: github.context.repo.owner,
@@ -67,10 +72,10 @@ async function run() {
       pull_number: pr.number,
     });
 
-    // Get all commiters on a pull request
+    // Get all committers on a pull request
     for (let commit of listCommits) {
-      // Check if there are commiters other than ALLOWED_NAMES
-      if (!ALLOWED_NAMES[commit.author.login]) {
+      // Check if there are committers other than ALLOWED_COMMITTERS
+      if (!ALLOWED_COMMITTERS[commit.author.login]) {
         core.info(
           `Commit ${commit.sha} is not from an approved source (${commit.author.login})`
         );

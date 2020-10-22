@@ -1449,7 +1449,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
-const ALLOWED_NAMES = ['dependabot[bot]', 'dependabot-preview[bot]'].reduce((acc, name) => (Object.assign(Object.assign({}, acc), { [name]: true })), {});
+const ALLOWED_COMMITTERS = [
+    'dependabot[bot]',
+    'dependabot-preview[bot]',
+].reduce((acc, name) => (Object.assign(Object.assign({}, acc), { [name]: true })), {});
+const ALLOWED_REVIEWERS = ['github-actions[bot]'].reduce((acc, name) => (Object.assign(Object.assign({}, acc), { [name]: true })), {});
 function remove_dependabot_approvals(client, pr) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -1463,7 +1467,7 @@ function remove_dependabot_approvals(client, pr) {
             // Check if there is an approval by dependabot
             for (let review of listReviews) {
                 core.info(`Reviewer: ${review.user.login}  Review state: ${review.state}`);
-                if (ALLOWED_NAMES[review.user.login] && review.state === `APPROVED`) {
+                if (ALLOWED_REVIEWERS[review.user.login] && review.state === `APPROVED`) {
                     core.info(`Removing an approval from ${review.user.login}`);
                     yield client.pulls.dismissReview({
                         owner: github.context.repo.owner,
@@ -1504,10 +1508,10 @@ function run() {
                 repo: github.context.repo.repo,
                 pull_number: pr.number,
             });
-            // Get all commiters on a pull request
+            // Get all committers on a pull request
             for (let commit of listCommits) {
-                // Check if there are commiters other than ALLOWED_NAMES
-                if (!ALLOWED_NAMES[commit.author.login]) {
+                // Check if there are committers other than ALLOWED_COMMITTERS
+                if (!ALLOWED_COMMITTERS[commit.author.login]) {
                     core.info(`Commit ${commit.sha} is not from an approved source (${commit.author.login})`);
                     // Remove approvals by dependabot if any
                     remove_dependabot_approvals(client, pr);
