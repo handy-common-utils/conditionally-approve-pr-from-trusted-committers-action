@@ -6,6 +6,32 @@ const ALLOWED_NAMES = ['dependabot[bot]', 'dependabot-preview[bot]'].reduce(
   {}
 );
 
+async function remove_dependabot_approvals(client, pr) {
+  try {
+    // Get list of all reviews
+    const { data: listReviews } = await client.pulls.listReviews({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      pull_number: pr.number,
+    });
+
+    // Check if there is an approval by dependabot
+    for (let review of listReviews) {
+      if (ALLOWED_NAMES[review.user.login] && review.state === `APPROVED`) {
+        await client.pulls.dismissReview({
+          owner: github.context.repo.owner,
+          repo: github.context.repo.repo,
+          pull_number: pr.number,
+          review_id: review.id,
+          message: `A commit was added after a dependabot approval`,
+        });
+      }
+    }
+  } catch (error) {
+    core.setFailed(error.message);
+  }
+}
+
 async function run() {
   try {
     const token = core.getInput('github-token', { required: true });
@@ -43,6 +69,8 @@ async function run() {
         core.info(
           `Commit ${commit.sha} is not from an approved source (${commit.author.login})`
         );
+        // Remove approvals by dependabot if any
+        remove_dependabot_approvals(client, pr);
         return;
       }
     }

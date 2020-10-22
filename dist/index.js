@@ -1450,6 +1450,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const ALLOWED_NAMES = ['dependabot[bot]', 'dependabot-preview[bot]'].reduce((acc, name) => (Object.assign(Object.assign({}, acc), { [name]: true })), {});
+function remove_dependabot_approvals(client, pr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Get list of all reviews
+            const { data: listReviews } = yield client.pulls.listReviews({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                pull_number: pr.number,
+            });
+            // Check if there is an approval by dependabot
+            for (let review of listReviews) {
+                if (ALLOWED_NAMES[review.user.login] && review.state === `APPROVED`) {
+                    yield client.pulls.dismissReview({
+                        owner: github.context.repo.owner,
+                        repo: github.context.repo.repo,
+                        pull_number: pr.number,
+                        review_id: review.id,
+                        message: `A commit was added after a dependabot approval`,
+                    });
+                }
+            }
+        }
+        catch (error) {
+            core.setFailed(error.message);
+        }
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -1479,6 +1506,8 @@ function run() {
                 // Check if there are commiters other than ALLOWED_NAMES
                 if (!ALLOWED_NAMES[commit.author.login]) {
                     core.info(`Commit ${commit.sha} is not from an approved source (${commit.author.login})`);
+                    // Remove approvals by dependabot if any
+                    remove_dependabot_approvals(client, pr);
                     return;
                 }
             }
