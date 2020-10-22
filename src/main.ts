@@ -12,36 +12,40 @@ const ALLOWED_REVIEWERS = ['github-actions[bot]'].reduce(
 );
 
 async function all_committers_allowed(client: any, pr: any) {
-  // Get a pull request
-  const { data: pullRequest } = await client.pulls.get({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    pull_number: pr.number,
-  });
+  try {
+    // Get a pull request
+    const { data: pullRequest } = await client.pulls.get({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      pull_number: pr.number,
+    });
 
-  // Get creator of PR
-  const pr_user = pullRequest.user.login;
+    // Get creator of PR
+    const pr_user = pullRequest.user.login;
 
-  core.info(`PR #${pr.number} opened from ${pr_user}`);
+    core.info(`PR #${pr.number} opened from ${pr_user}`);
 
-  // Get list of commits on a PR
-  const { data: listCommits } = await client.pulls.listCommits({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    pull_number: pr.number,
-  });
+    // Get list of commits on a PR
+    const { data: listCommits } = await client.pulls.listCommits({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      pull_number: pr.number,
+    });
 
-  // Get all committers on a PR
-  for (let commit of listCommits) {
-    // Check if there are committers other than ALLOWED_COMMITTERS
-    if (!ALLOWED_COMMITTERS[commit.author.login]) {
-      core.info(
-        `Commit ${commit.sha} is not from an approved source (${commit.author.login})`
-      );
-      // Remove approvals by dependabot if any
-      remove_dependabot_approvals(client, pr);
-      return false;
+    // Get all committers on a PR
+    for (let commit of listCommits) {
+      // Check if there are committers other than ALLOWED_COMMITTERS
+      if (!ALLOWED_COMMITTERS[commit.author.login]) {
+        core.info(
+          `Commit ${commit.sha} is not from an approved source (${commit.author.login})`
+        );
+        // Remove approvals by dependabot if any
+        await remove_dependabot_approvals(client, pr);
+        return false;
+      }
     }
+  } catch (error) {
+    core.setFailed(error.message);
   }
   return true;
 }
@@ -84,7 +88,7 @@ async function run() {
 
     const client = new github.GitHub(token);
 
-    if (!all_committers_allowed(client, pr)) return;
+    if (!(await all_committers_allowed(client, pr))) return;
 
     core.debug(`Creating approving review for pull request #${pr.number}`);
     await client.pulls.createReview({

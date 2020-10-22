@@ -1456,30 +1456,35 @@ const ALLOWED_COMMITTERS = [
 const ALLOWED_REVIEWERS = ['github-actions[bot]'].reduce((acc, name) => (Object.assign(Object.assign({}, acc), { [name]: true })), {});
 function all_committers_allowed(client, pr) {
     return __awaiter(this, void 0, void 0, function* () {
-        // Get a pull request
-        const { data: pullRequest } = yield client.pulls.get({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            pull_number: pr.number,
-        });
-        // Get creator of PR
-        const pr_user = pullRequest.user.login;
-        core.info(`PR #${pr.number} opened from ${pr_user}`);
-        // Get list of commits on a PR
-        const { data: listCommits } = yield client.pulls.listCommits({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            pull_number: pr.number,
-        });
-        // Get all committers on a PR
-        for (let commit of listCommits) {
-            // Check if there are committers other than ALLOWED_COMMITTERS
-            if (!ALLOWED_COMMITTERS[commit.author.login]) {
-                core.info(`Commit ${commit.sha} is not from an approved source (${commit.author.login})`);
-                // Remove approvals by dependabot if any
-                remove_dependabot_approvals(client, pr);
-                return false;
+        try {
+            // Get a pull request
+            const { data: pullRequest } = yield client.pulls.get({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                pull_number: pr.number,
+            });
+            // Get creator of PR
+            const pr_user = pullRequest.user.login;
+            core.info(`PR #${pr.number} opened from ${pr_user}`);
+            // Get list of commits on a PR
+            const { data: listCommits } = yield client.pulls.listCommits({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                pull_number: pr.number,
+            });
+            // Get all committers on a PR
+            for (let commit of listCommits) {
+                // Check if there are committers other than ALLOWED_COMMITTERS
+                if (!ALLOWED_COMMITTERS[commit.author.login]) {
+                    core.info(`Commit ${commit.sha} is not from an approved source (${commit.author.login})`);
+                    // Remove approvals by dependabot if any
+                    yield remove_dependabot_approvals(client, pr);
+                    return false;
+                }
             }
+        }
+        catch (error) {
+            core.setFailed(error.message);
         }
         return true;
     });
@@ -1521,7 +1526,7 @@ function run() {
                 throw new Error('Event payload missing `pull_request`');
             }
             const client = new github.GitHub(token);
-            if (!all_committers_allowed(client, pr))
+            if (!(yield all_committers_allowed(client, pr)))
                 return;
             core.debug(`Creating approving review for pull request #${pr.number}`);
             yield client.pulls.createReview({
