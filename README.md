@@ -1,14 +1,21 @@
+<a href="https://cognite.com/">
+    <img src="./cognite_logo.png" alt="Cognite logo" title="Cognite" align="right" height="80" />
+</a>
+
 # Auto Approve GitHub Action
 
-**Name:** `hmarr/auto-approve-action`
+**Name:** `cognitedata/auto-approve-dependabot-action`
 
 Automatically approve GitHub pull requests. The `GITHUB_TOKEN` secret must be provided as the `github-token` input for the action to work.
 
 **Important:** use v2.0.0 or later, as v1 was designed for the initial GitHub Actions beta, and no longer works.
 
+This action is a fork of hmarr/auto-approve-action and implements additional checks if the PR was opened by dependabot and if there are any additional committers to the PR. In the latter case, it removes any dependabot approvals.
+
+
 ## Usage instructions
 
-Create a workflow file (e.g. `.github/workflows/auto-approve.yml`) that contains a step that `uses: hmarr/auto-approve-action@v2.0.0`. Here's an example workflow file:
+Create a workflow file (e.g. `.github/workflows/auto-approve.yml`) that contains a step that `uses: cognitedata/auto-approve-dependabot-action@v3.0.0`. Here's an example workflow file:
 
 ```yaml
 name: Auto approve
@@ -18,7 +25,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: hmarr/auto-approve-action@v2.0.0
+    - uses: cognitedata/auto-approve-dependabot-action@v3.0.0
       with:
         github-token: "${{ secrets.GITHUB_TOKEN }}"
 ```
@@ -36,7 +43,7 @@ jobs:
   auto-approve:
     runs-on: ubuntu-latest
     steps:
-    - uses: hmarr/auto-approve-action@v2.0.0
+    - uses: cognitedata/auto-approve-dependabot-action@v3.0.0
       if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
       with:
         github-token: "${{ secrets.GITHUB_TOKEN }}"
@@ -47,3 +54,11 @@ jobs:
 GitHub lets you prevent merges of unapproved pull requests. However, it's occasionally useful to selectively circumvent this restriction - for instance, some people want Dependabot's automated pull requests to not require approval.
 
 [dependabot]: https://github.com/marketplace/dependabot
+
+## License
+
+[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+
+## Contributing
+
+Contributions welcome! See the [code of conduct](./CODE_OF_CONDUCT.md).
