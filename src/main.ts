@@ -67,10 +67,10 @@ async function removeExistingApprovalsIfExist(config, client: GitHub, pr: any) {
     pull_number: pr.number,
   });
 
-  // Check if there is an approval by those in manageApprovalsForRevewers
+  // Check if there is an approval by those in manageApprovalsForReviewers
   for (let review of listReviews) {
     if (
-      config.manageApprovalsForRevewers[review.user?.login ?? '!'] &&
+      config.manageApprovalsForReviewers[review.user?.login ?? '!'] &&
       review.state === `APPROVED`
     ) {
       core.info(`Removing an approval from ${review.user?.login}`);
@@ -114,7 +114,7 @@ async function run() {
         .getInput('trusted-committers')
         .split(/,\s*/)
         .reduce((acc, name) => ({ ...acc, [name]: true }), {}),
-      manageApprovalsForRevewers: core
+      manageApprovalsForReviewers: core
         .getInput('manage-approvals-for-reviewers')
         .split(/,\s*/)
         .reduce((acc, name) => ({ ...acc, [name]: true }), {}),
