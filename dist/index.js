@@ -9519,9 +9519,9 @@ function removeExistingApprovalsIfExist(config, client, pr) {
             repo: github.context.repo.repo,
             pull_number: pr.number,
         });
-        // Check if there is an approval by those in manageApprovalsForRevewers
+        // Check if there is an approval by those in manageApprovalsForReviewers
         for (let review of listReviews) {
-            if (config.manageApprovalsForRevewers[(_b = (_a = review.user) === null || _a === void 0 ? void 0 : _a.login) !== null && _b !== void 0 ? _b : '!'] &&
+            if (config.manageApprovalsForReviewers[(_b = (_a = review.user) === null || _a === void 0 ? void 0 : _a.login) !== null && _b !== void 0 ? _b : '!'] &&
                 review.state === `APPROVED`) {
                 core.info(`Removing an approval from ${(_c = review.user) === null || _c === void 0 ? void 0 : _c.login}`);
                 yield client.rest.pulls.dismissReview({
@@ -9536,6 +9536,26 @@ function removeExistingApprovalsIfExist(config, client, pr) {
         }
     });
 }
+function enableAutoMerge(config, client, pr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { id } = (yield client.graphql(`
+    query MyQuery {
+      repository(name: "${github.context.repo.repo}", owner: "${github.context.repo.owner}") {
+        pullRequest(number: ${pr.number}) {
+          id
+        }
+      } 
+    }
+  `));
+        yield client.graphql(`
+    mutation MyMutation {
+      enablePullRequestAutoMerge(input: {pullRequestId: "${id}"}) {
+        clientMutationId
+      }
+    }
+  `);
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -9545,10 +9565,11 @@ function run() {
                     .getInput('trusted-committers')
                     .split(/,\s*/)
                     .reduce((acc, name) => (Object.assign(Object.assign({}, acc), { [name]: true })), {}),
-                manageApprovalsForRevewers: core
+                manageApprovalsForReviewers: core
                     .getInput('manage-approvals-for-reviewers')
                     .split(/,\s*/)
                     .reduce((acc, name) => (Object.assign(Object.assign({}, acc), { [name]: true })), {}),
+                enableAutoMerge: core.getInput('enable-auto-merge').toLocaleLowerCase() === 'true',
             };
             const { pull_request: pr } = github.context.payload;
             if (!pr) {
@@ -9557,6 +9578,9 @@ function run() {
             const client = github.getOctokit(token);
             if (!(yield approveIfAllCommittersAreTrusted(config, client, pr))) {
                 yield removeExistingApprovalsIfExist(config, client, pr);
+            }
+            if (config.enableAutoMerge) {
+                yield enableAutoMerge(config, client, pr);
             }
         }
         catch (error) {
