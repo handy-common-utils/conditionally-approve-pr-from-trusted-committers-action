@@ -2,7 +2,8 @@
 
 **Name:** `handy-common-utils/conditionally-approve-pr-from-trusted-committers`
 
-(This is a fork of `cognitedata/auto-approve-dependabot-action` which is in turn a fork of `hmarr/auto-approve-action`.)
+(This is a fork of `cognitedata/auto-approve-dependabot-action` which is in turn a fork of `hmarr/auto-approve-action`.
+The functionality of this action is now totally different from them.)
 
 Approve GitHub pull request if all commits in the PR were made by users on a configurable whitelist of trusted committers.
 When used together with auto-merge feature, fully automated CI/CD could be easily achieved.
