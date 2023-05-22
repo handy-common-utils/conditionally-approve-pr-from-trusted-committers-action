@@ -86,6 +86,25 @@ async function removeExistingApprovalsIfExist(config, client: GitHub, pr: any) {
   }
 }
 
+async function enableAutoMerge(config, client: GitHub, pr: any) {
+  const { id } = await client.graphql(`
+    query MyQuery {
+      repository(name: "${github.context.repo.repo}", owner: "${github.context.repo.owner}") {
+        pullRequest(number: ${pr.number}) {
+          id
+        }
+      } 
+    }
+  `) as any;
+  await client.graphql(`
+    mutation MyMutation {
+      enablePullRequestAutoMerge(input: {pullRequestId: "${id}"}) {
+        clientMutationId
+      }
+    }
+  `);
+}
+
 async function run() {
   try {
     const token = core.getInput('github-token', { required: true });
@@ -99,6 +118,8 @@ async function run() {
         .getInput('manage-approvals-for-reviewers')
         .split(/,\s*/)
         .reduce((acc, name) => ({ ...acc, [name]: true }), {}),
+      enableAutoMerge:
+        core.getInput('enable-auto-merge').toLocaleLowerCase() === 'true',
     };
 
     const { pull_request: pr } = github.context.payload;
@@ -112,6 +133,9 @@ async function run() {
 
     if (!(await approveIfAllCommittersAreTrusted(config, client, pr))) {
       await removeExistingApprovalsIfExist(config, client, pr);
+    }
+    if (config.enableAutoMerge) {
+      await enableAutoMerge(config, client, pr);
     }
   } catch (error) {
     core.setFailed((error as Error).message);

@@ -49,6 +49,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }} # required, feel free to use another PAT
           trusted-committers: dependabot[bot], github-actions[bot], james-hu  # optional, default to "dependabot[bot],dependabot-preview[bot]"
           manage-approvals-for-reviewers: github-actions[bot]  # optional, default to "github-actions[bot]"
+          enable-auto-merge: true # optional, default to false
 ```
 
 ## Why?

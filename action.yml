@@ -16,6 +16,10 @@ inputs:
     description: 'Logins/IDs of reviewers for which this action could dismiss their approvals'
     required: false
     default: 'github-actions[bot]'
+  set-auto-merge:
+    description: 'Enable auto-merge for the PR or not, if not specified then default to false'
+    required: false
+    default: 'false'
 runs:
   using: 'node16'
   main: 'dist/index.js'
