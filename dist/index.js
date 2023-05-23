@@ -9537,8 +9537,10 @@ function removeExistingApprovalsIfExist(config, client, pr) {
     });
 }
 function enableAutoMerge(config, client, pr) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        const { id } = (yield client.graphql(`
+        core.info(`Fetching ID for PR #${pr.number} in ${github.context.repo.owner}/${github.context.repo.repo}`);
+        const data = yield client.graphql(`
     query MyQuery {
       repository(name: "${github.context.repo.repo}", owner: "${github.context.repo.owner}") {
         pullRequest(number: ${pr.number}) {
@@ -9546,7 +9548,10 @@ function enableAutoMerge(config, client, pr) {
         }
       } 
     }
-  `));
+  `);
+        core.info(`Data received: ${JSON.stringify(data)}`);
+        const id = (_b = (_a = data.repository) === null || _a === void 0 ? void 0 : _a.pullRequest) === null || _b === void 0 ? void 0 : _b.id;
+        core.info(`Enabling auto-merge for PR #${pr.number} (${id})`);
         yield client.graphql(`
     mutation MyMutation {
       enablePullRequestAutoMerge(input: {pullRequestId: "${id}"}) {
