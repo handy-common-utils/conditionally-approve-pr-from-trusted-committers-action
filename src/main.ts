@@ -87,6 +87,7 @@ async function removeExistingApprovalsIfExist(config, client: GitHub, pr: any) {
 }
 
 async function enableAutoMerge(config, client: GitHub, pr: any) {
+  core.info(`Fetching ID for PR #${pr.number} in ${github.context.repo.owner}/${github.context.repo.repo}`);
   const data = await client.graphql(`
     query MyQuery {
       repository(name: "${github.context.repo.repo}", owner: "${github.context.repo.owner}") {
@@ -96,6 +97,7 @@ async function enableAutoMerge(config, client: GitHub, pr: any) {
       } 
     }
   `) as any;
+  core.info(`Data received: ${JSON.stringify(data)}`);
   const id = data.repository?.pullRequest?.id;
   core.info(`Enabling auto-merge for PR #${pr.number} (${id})`);
   await client.graphql(`
