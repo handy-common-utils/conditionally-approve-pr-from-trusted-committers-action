@@ -99,7 +99,7 @@ async function enableAutoMerge(config, client: GitHub, pr: any) {
   const id = data.repository?.pullRequest?.id;
   core.info(`Enabling auto-merge for PR #${pr.number} (${id})`);
   try {
-  await client.graphql(`
+    await client.graphql(`
     mutation MyMutation {
       enablePullRequestAutoMerge(input: {pullRequestId: "${id}"}) {
         clientMutationId
@@ -141,10 +141,11 @@ async function run() {
 
     const client = github.getOctokit(token);
 
-    if (!(await approveIfAllCommittersAreTrusted(config, client, pr))) {
+    const approved = await approveIfAllCommittersAreTrusted(config, client, pr);
+    if (!approved) {
       await removeExistingApprovalsIfExist(config, client, pr);
     }
-    if (config.enableAutoMerge) {
+    if (approved && config.enableAutoMerge) {
       await enableAutoMerge(config, client, pr);
     }
   } catch (error) {
