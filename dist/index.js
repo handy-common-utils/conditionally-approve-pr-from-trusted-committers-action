@@ -9539,7 +9539,7 @@ function removeExistingApprovalsIfExist(config, client, pr) {
 function enableAutoMerge(config, client, pr) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        const data = yield client.graphql(`
+        const data = (yield client.graphql(`
     query MyQuery {
       repository(name: "${github.context.repo.repo}", owner: "${github.context.repo.owner}") {
         pullRequest(number: ${pr.number}) {
@@ -9547,16 +9547,25 @@ function enableAutoMerge(config, client, pr) {
         }
       } 
     }
-  `);
+  `));
         const id = (_b = (_a = data.repository) === null || _a === void 0 ? void 0 : _a.pullRequest) === null || _b === void 0 ? void 0 : _b.id;
         core.info(`Enabling auto-merge for PR #${pr.number} (${id})`);
-        yield client.graphql(`
+        try {
+            yield client.graphql(`
     mutation MyMutation {
       enablePullRequestAutoMerge(input: {pullRequestId: "${id}"}) {
         clientMutationId
       }
     }
   `);
+        }
+        catch (error) {
+            core.warning(`Failed to enable auto-merge for PR #${pr.number} (${id}). ` +
+                'Very likely the PR is already in ready-to-be-merged status. ' +
+                'GitHub does not allow enabling auto-merge for a PR that already can be merged. ' +
+                'This could be caused by having no branch protection rule requiring status checks to pass before merging.');
+            core.info(`Error: ${error}`);
+        }
     });
 }
 function run() {
@@ -9579,10 +9588,11 @@ function run() {
                 throw new Error('Event payload missing `pull_request` - workflow containing this action is supposed to be triggered by `pull_request` or `pull_request_target` event');
             }
             const client = github.getOctokit(token);
-            if (!(yield approveIfAllCommittersAreTrusted(config, client, pr))) {
+            const approved = yield approveIfAllCommittersAreTrusted(config, client, pr);
+            if (!approved) {
                 yield removeExistingApprovalsIfExist(config, client, pr);
             }
-            if (config.enableAutoMerge) {
+            if (approved && config.enableAutoMerge) {
                 yield enableAutoMerge(config, client, pr);
             }
         }
