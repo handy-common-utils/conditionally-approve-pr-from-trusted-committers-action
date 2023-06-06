@@ -98,6 +98,7 @@ async function enableAutoMerge(config, client: GitHub, pr: any) {
   `) as any;
   const id = data.repository?.pullRequest?.id;
   core.info(`Enabling auto-merge for PR #${pr.number} (${id})`);
+  try {
   await client.graphql(`
     mutation MyMutation {
       enablePullRequestAutoMerge(input: {pullRequestId: "${id}"}) {
@@ -105,6 +106,13 @@ async function enableAutoMerge(config, client: GitHub, pr: any) {
       }
     }
   `);
+  } catch (error) {
+    core.warning(`Failed to enable auto-merge for PR #${pr.number} (${id}). `
+      + 'Very likely the PR is already in ready-to-be-merged status. '
+      + 'GitHub does not allow enabling auto-merge for a PR that already can be merged. '
+      + 'This could be caused by having no branch protection rule requiring status checks to pass before merging.');
+    core.info(`Error: ${error}`);
+  }
 }
 
 async function run() {
